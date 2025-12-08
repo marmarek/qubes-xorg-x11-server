@@ -41,9 +41,6 @@ Patch1:     0001-xfree86-use-modesetting-driver-by-default-on-GeForce.patch
 Patch2:     0001-xf86-dri2-Use-va_gl-as-vdpau_driver-for-Intel-i965-G.patch
 # because the display-managers are not ready yet, do not upstream
 Patch3:     0001-Fedora-hack-Make-the-suid-root-wrapper-always-start-.patch
-Patch4:     0001-Revert-xfree86-Set-appropriate-install_mode-for-suid.patch
-# https://bugzilla.redhat.com/show_bug.cgi?id=2326701
-Patch5:     0001-add-a-quirk-for-apple-silicon.patch
 # quirk for Novacustom V54
 Patch6:     0001-xfree86-fix-enumerating-resolutions-on-NovaCustom-V5.patch
 # backport necessary for the above patch to be effective
