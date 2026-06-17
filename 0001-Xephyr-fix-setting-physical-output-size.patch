@@ -1,0 +1,120 @@
+From 6bd9aec85f329def9ed97956d13f990bb8fbd7eb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marek=20Marczykowski-G=C3=B3recki?=
+ <marmarek@invisiblethingslab.com>
+Date: Wed, 17 Jun 2026 20:22:20 +0200
+Subject: [PATCH] Xephyr: fix setting physical output size
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Providing physical size via RRRegisterSize() is not enough - physical
+size is a property of the output, not resolution and needs to be set
+separately. Furhermore, get the physical output size using RandR if
+-output is used, to match specific output, not the whole screen.
+
+With this, `Xephyr -output OUTPUT_NAME` properly copies not only
+resolution but also physical size of the named output.
+
+Signed-off-by: Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>
+---
+ hw/kdrive/ephyr/ephyr.c |  8 ++++++++
+ hw/kdrive/ephyr/ephyr.h |  1 +
+ hw/kdrive/ephyr/hostx.c | 15 +++++++++++----
+ hw/kdrive/ephyr/hostx.h |  3 ++-
+ 4 files changed, 22 insertions(+), 5 deletions(-)
+
+diff --git a/hw/kdrive/ephyr/ephyr.c b/hw/kdrive/ephyr/ephyr.c
+index 069270219..e62c46912 100644
+--- a/hw/kdrive/ephyr/ephyr.c
++++ b/hw/kdrive/ephyr/ephyr.c
+@@ -453,6 +453,14 @@ ephyrRandRGetInfo(ScreenPtr pScreen, Rotation * rotations)
+                            screen->width,
+                            screen->height, screen->width_mm, screen->height_mm);
+ 
++    if (hostx_want_fullscreen()) {
++        RROutputPtr pOutput = RRFirstOutput(pScreen);
++        if (pOutput)
++            RROutputSetPhysicalSize(pOutput,
++                                    scrpriv->win_width_mm,
++                                    scrpriv->win_height_mm);
++    }
++
+     randr = KdSubRotation(scrpriv->randr, screen->randr);
+ 
+     RRSetCurrentConfig(pScreen, randr, 0, pSize);
+diff --git a/hw/kdrive/ephyr/ephyr.h b/hw/kdrive/ephyr/ephyr.h
+index 8833de8a9..67e24b3e8 100644
+--- a/hw/kdrive/ephyr/ephyr.h
++++ b/hw/kdrive/ephyr/ephyr.h
+@@ -76,6 +76,7 @@ typedef struct _ephyrScrPriv {
+     Bool win_explicit_position;
+     int win_x, win_y;
+     int win_width, win_height;
++    int win_width_mm, win_height_mm;
+     int server_depth;
+     const char *output;         /* Set via -output option */
+     unsigned char *fb_data;     /* only used when host bpp != server bpp */
+diff --git a/hw/kdrive/ephyr/hostx.c b/hw/kdrive/ephyr/hostx.c
+index b7ac56d50..78e957176 100644
+--- a/hw/kdrive/ephyr/hostx.c
++++ b/hw/kdrive/ephyr/hostx.c
+@@ -238,7 +238,8 @@ hostx_want_preexisting_window(KdScreenInfo *screen)
+ void
+ hostx_get_output_geometry(const char *output,
+                           int *x, int *y,
+-                          int *width, int *height)
++                          int *width, int *height,
++                          int *width_mm, int *height_mm)
+ {
+     int i, name_len = 0, output_found = FALSE;
+     char *name = NULL;
+@@ -331,6 +332,8 @@ hostx_get_output_geometry(const char *output,
+             *y = crtc_info_r->y;
+             *width = crtc_info_r->width;
+             *height = crtc_info_r->height;
++            *width_mm = output_info_r->mm_width;
++            *height_mm = output_info_r->mm_height;
+ 
+             free(crtc_info_r);
+         }
+@@ -628,8 +631,10 @@ hostx_init(void)
+                                 "(ctrl+shift grabs mouse and keyboard)");
+ 
+             if (HostX.use_fullscreen) {
+-                scrpriv->win_width  = xscreen->width_in_pixels;
+-                scrpriv->win_height = xscreen->height_in_pixels;
++                scrpriv->win_width     = xscreen->width_in_pixels;
++                scrpriv->win_height    = xscreen->height_in_pixels;
++                scrpriv->win_width_mm  = xscreen->width_in_millimeters;
++                scrpriv->win_height_mm = xscreen->height_in_millimeters;
+ 
+                 hostx_set_fullscreen_hint();
+             }
+@@ -638,7 +643,9 @@ hostx_init(void)
+                                           &scrpriv->win_x,
+                                           &scrpriv->win_y,
+                                           &scrpriv->win_width,
+-                                          &scrpriv->win_height);
++                                          &scrpriv->win_height,
++                                          &scrpriv->win_width_mm,
++                                          &scrpriv->win_height_mm);
+ 
+                 HostX.use_fullscreen = TRUE;
+                 hostx_set_fullscreen_hint();
+diff --git a/hw/kdrive/ephyr/hostx.h b/hw/kdrive/ephyr/hostx.h
+index 8b3caf245..00891a07a 100644
+--- a/hw/kdrive/ephyr/hostx.h
++++ b/hw/kdrive/ephyr/hostx.h
+@@ -84,7 +84,8 @@ xcb_cursor_t
+ void
+  hostx_get_output_geometry(const char *output,
+                            int *x, int *y,
+-                           int *width, int *height);
++                           int *width, int *height,
++                           int *width_mm, int *height_mm);
+ 
+ void
+  hostx_use_fullscreen(void);
+-- 
+2.54.0
+

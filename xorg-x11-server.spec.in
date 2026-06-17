@@ -45,6 +45,8 @@ Patch3:     0001-Fedora-hack-Make-the-suid-root-wrapper-always-start-.patch
 Patch6:     0001-xfree86-fix-enumerating-resolutions-on-NovaCustom-V5.patch
 # backport necessary for the above patch to be effective
 Patch7:     0002-hw-xfree86-re-calculate-the-clock-and-refresh-rate.patch
+# needed for proper DPI detection in sys-gui
+Patch8:     0001-Xephyr-fix-setting-physical-output-size.patch
 
 BuildRequires:  bison
 BuildRequires:  flex
