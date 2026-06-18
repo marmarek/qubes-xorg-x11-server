@@ -348,6 +348,7 @@ find %{inst_srcdir}/hw/xfree86 -name \*.c -delete
 # Remove unwanted files/dirs
 find %{buildroot} -type f -name '*.la' -delete
 
+%files
 
 %files common
 %doc COPYING
